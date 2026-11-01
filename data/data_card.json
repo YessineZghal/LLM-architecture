@@ -1,0 +1,18 @@
+{
+  "shakespeare": {
+    "chars": 1115394,
+    "char_vocab": 65,
+    "bpe_tokens": 575809,
+    "bpe_vocab": 512
+  },
+  "seq2seq": {
+    "pairs": 6000,
+    "vocab": 29,
+    "max_len": 10
+  },
+  "digits": {
+    "images": 1797,
+    "size": "8x8",
+    "classes": 10
+  }
+}
