@@ -1,8 +1,14 @@
 # %% [md]
 # # 99 · All architectures side by side
 # Collects the numbers every notebook saved to `data/results/` (run notebooks 01–13 first).
-# All next-token models used the same data (char-level tiny-Shakespeare), context 64, AdamW + one-cycle LR, and a similar
-# size (~0.3 M params), so the comparison is *fair but small-scale* — treat it as intuition, not a leaderboard.
+# All next-token models used the same data (char-level tiny-Shakespeare), context 64 and AdamW + one-cycle LR.
+#
+# **Read this table carefully:**
+# * most models train for **1 200 steps**; the two slowest ones (Mamba: 500 steps, hybrid: 400 steps — their selective scan is a plain Python loop) got a **smaller budget**, see the `steps` column;
+# * model sizes differ (0.2 M – 1.0 M parameters; the MoE and hybrid have many more *total* parameters than *active* ones);
+# * one seed, tiny scale.
+#
+# So treat the numbers as intuition about each family, **not** as a leaderboard.
 # %%
 import json
 import pandas as pd, numpy as np, matplotlib.pyplot as plt, seaborn as sns
@@ -15,7 +21,7 @@ comparable = res[res.note.isna()] if "note" in res else res
 # ## Next-token models (directly comparable)
 # %%
 c = comparable.sort_values("val_loss"); c = c.assign(val_ppl=np.exp(c.val_loss.astype(float)), params_k=c.params / 1e3)
-display(c[["params_k", "val_loss", "val_ppl"]].round(3))
+display(c[["params_k", "steps", "val_loss", "val_ppl"]].round(3))
 fig, ax = plt.subplots(1, 2, figsize=(14, 4.5))
 sns.barplot(y=c.index, x=c.val_loss.astype(float), ax=ax[0], palette="viridis"); ax[0].set(xlabel="validation cross-entropy (nats/char)", title="lower is better"); ax[0].set_xlim(c.val_loss.astype(float).min() - .2)
 ax[1].scatter(c.params_k, c.val_loss.astype(float), s=90)

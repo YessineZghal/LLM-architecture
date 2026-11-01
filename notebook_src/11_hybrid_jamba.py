@@ -11,7 +11,7 @@ import torch, torch.nn as nn, torch.nn.functional as F, matplotlib.pyplot as plt
 from llmarch import *
 setup_style()
 from llmarch.blocks import *
-set_seed(0); device = get_device(); STEPS = 800
+set_seed(0); device = get_device(); STEPS = 400
 data = load_text_data("char"); train, val, V = data["train"], data["val"], data["vocab_size"]
 # %%
 PATTERN = "MMAMMA"; d = 96

@@ -114,10 +114,11 @@ META = {
                "Bidirectional context gives native infilling."],
     refs=[A("Nie et al., *Large Language Diffusion Models* (LLaDA, 2025)", ARX("2502.09992")), A("Sahoo et al., *Simple and Effective Masked Diffusion Language Models* (2024)", ARX("2406.07524"))]),
 "99_comparison": dict(
-    family="Comparison", models="all notebooks", idea="Collect the results of every architecture under one training budget.", cost="–",
-    objectives=["Compare quality vs size for all next-token models", "Keep non-comparable objectives (MLM, seq2seq, diffusion) separate"],
-    takeaways=["At ~0.3 M parameters and 1 000 steps the recipe matters more than the family (LLaMA-style vs GPT-2).",
-               "Efficient-inference families (RNN, SSM, RWKV, RetNet) stay competitive but behind attention on this recall-heavy text.",
+    family="Comparison", models="all notebooks", idea="Collect the results of every architecture in one table (with parameters and training steps).", cost="–",
+    objectives=["Compare quality vs size for all next-token models", "Keep non-comparable objectives (MLM, seq2seq, diffusion) separate", "Learn to read a small-scale comparison critically"],
+    takeaways=["Recipe details (LLaMA-style vs GPT-2-style) matter as much as the architecture *family* at this scale.",
+               "Recurrent / linear-time families (GRU, RWKV, Mamba) are competitive with attention on character-level text, but note the different training budgets in the `steps` column.",
+               "Our simple RetNet implementation (no gating, no xPos) is clearly weaker – implementation details matter.",
                "Scale, data and optimisation change the picture: treat this as an intuition-builder, not a benchmark."],
     refs=[]),
 }

@@ -95,7 +95,7 @@ def save_result(name, model, hist, extra=None):
     import json, re
     from .data import DATA_DIR
     d = DATA_DIR / "results"; d.mkdir(exist_ok=True)
-    rec = dict(name=name, params=count_params(model), val_loss=float(hist["val"][-1]),
+    rec = dict(name=name, params=count_params(model), steps=len(hist["train"]), val_loss=float(hist["val"][-1]),
                train_loss=float(np.mean(hist["train"][-20:])), **(extra or {}))
     (d / (re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") + ".json")).write_text(json.dumps(rec, indent=2))
     return rec
