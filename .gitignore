@@ -2,4 +2,6 @@
 __pycache__/
 .ipynb_checkpoints/
 data/raw/
-*.pt
+data/*.pt
+data/results/
+*.onnx

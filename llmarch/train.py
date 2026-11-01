@@ -91,11 +91,11 @@ def generate(model, idx, max_new_tokens=200, temperature=1.0, top_k=None, block_
 
 
 def save_result(name, model, hist, extra=None):
-    """Record final val loss / params so notebook 99 can compare every architecture."""
-    import json
+    """Record final val loss / params (one json per notebook entry) so notebook 99 can compare every architecture."""
+    import json, re
     from .data import DATA_DIR
-    p = DATA_DIR / "results.json"
-    r = json.loads(p.read_text()) if p.exists() else {}
-    r[name] = dict(params=count_params(model), val_loss=hist["val"][-1], train_loss=float(np.mean(hist["train"][-20:])),
-                   **(extra or {}))
-    p.write_text(json.dumps(r, indent=2)); return r[name]
+    d = DATA_DIR / "results"; d.mkdir(exist_ok=True)
+    rec = dict(name=name, params=count_params(model), val_loss=float(hist["val"][-1]),
+               train_loss=float(np.mean(hist["train"][-20:])), **(extra or {}))
+    (d / (re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") + ".json")).write_text(json.dumps(rec, indent=2))
+    return rec
