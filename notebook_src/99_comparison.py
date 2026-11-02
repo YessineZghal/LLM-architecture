@@ -4,7 +4,8 @@
 # All next-token models used the same data (char-level tiny-Shakespeare), context 64 and AdamW + one-cycle LR.
 #
 # **Read this table carefully:**
-# * most models train for **1 200 steps**; the two slowest ones (Mamba: 500 steps, hybrid: 400 steps — their selective scan is a plain Python loop) got a **smaller budget**, see the `steps` column;
+#
+# * most models train for **1 000–1 200 steps**; the two slowest ones (Mamba: 500 steps, hybrid: 400 steps — their selective scan is a plain Python loop) got a **smaller budget**, see the `steps` column;
 # * model sizes differ (0.2 M – 1.0 M parameters; the MoE and hybrid have many more *total* parameters than *active* ones);
 # * one seed, tiny scale.
 #

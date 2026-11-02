@@ -23,7 +23,8 @@ from notebook_meta import META  # noqa: E402
 def parse(text):
     cells, kind, buf = [], None, []
     def flush():
-        body = "\n".join(buf).strip("\n")
+        lines = [re.sub(r"^# ?", "", l) for l in buf] if kind == "md" else buf   # md lines carry the '# ' comment prefix
+        body = "\n".join(lines).strip("\n")
         if kind and body:
             cells.append((nbformat.v4.new_markdown_cell if kind == "md" else nbformat.v4.new_code_cell)(body))
     for line in text.splitlines():
@@ -50,7 +51,8 @@ def number_sections(cells):
 
 
 def anchor(n, title):
-    return f"{n}-·-" + re.sub(r"\s+", "-", title)
+    from urllib.parse import quote
+    return quote(f"{n}-·-" + re.sub(r"\s+", "-", title))
 
 
 def banner(meta, runtime, toc, nb_id):
@@ -76,6 +78,20 @@ def footer(meta, stem, order):
     return nbformat.v4.new_markdown_cell(md + "\n\n---\n*" + "  ·  ".join(nav) + "*")
 
 
+def refresh_md(stem):
+    """Rewrite only the markdown cells (banner, TOC, text, footer) of an already executed notebook; outputs are kept."""
+    meta = META.get(stem, {}); order = sorted(p.stem for p in SRC.glob("*.py"))
+    old = nbformat.read(OUT / f"{stem}.ipynb", 4)
+    new = parse((SRC / f"{stem}.py").read_text()); toc = number_sections(new)
+    body = old.cells[2:-1]
+    assert len(body) == len(new) - 1 and all(a.cell_type == b.cell_type for a, b in zip(body, new[1:])), f"{stem}: structure changed, re-execute"
+    merged = [n if n.cell_type == "markdown" else o for o, n in zip(body, new[1:])]
+    m = re.search(r"≈ (\d+) s", old.cells[1].source)
+    old.cells = [new[0], banner(meta, float(m.group(1)) if m else None, toc, stem)] + merged + [footer(meta, stem, order)]
+    nbformat.write(old, OUT / f"{stem}.ipynb")
+    return f"{stem:<36} markdown refreshed"
+
+
 def run(stem, execute=True):
     meta = META.get(stem, {}); order = sorted(p.stem for p in SRC.glob("*.py"))
     cells = parse((SRC / f"{stem}.py").read_text()); toc = number_sections(cells)
@@ -97,10 +113,13 @@ def run(stem, execute=True):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("names", nargs="*"); ap.add_argument("-j", "--jobs", type=int, default=4); ap.add_argument("--no-exec", action="store_true")
+    ap = argparse.ArgumentParser(); ap.add_argument("names", nargs="*"); ap.add_argument("-j", "--jobs", type=int, default=4); ap.add_argument("--no-exec", action="store_true"); ap.add_argument("--md-only", action="store_true", help="refresh markdown of executed notebooks, keep outputs")
     a = ap.parse_args()
     stems = [p.stem for p in sorted(SRC.glob("*.py")) if not a.names or any(n in p.stem for n in a.names)]
     os.environ.setdefault("OMP_NUM_THREADS", "2"); os.environ.setdefault("MKL_NUM_THREADS", "2")
+    if a.md_only:
+        for st in stems: print(refresh_md(st))
+        sys.exit(0)
     # slowest first so the pool stays busy
     stems.sort(key=lambda s: s not in ("09_state_space_mamba", "11_hybrid_jamba", "07_mixture_of_experts", "05_attention_variants"))
     with ProcessPoolExecutor(a.jobs) as ex:
