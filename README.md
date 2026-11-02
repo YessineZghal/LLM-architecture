@@ -103,7 +103,7 @@ uv run python scripts/build_notebooks.py --no-exec    # regenerate .ipynb withou
 ```
 
 The builder reads `notebook_src/*.py`, executes each notebook with the project kernel, and writes the results to
-`Notebook/*.ipynb`. A full run takes on the order of 15–25 minutes on a laptop CPU (notebook 11 dominates).
+`Notebook/*.ipynb`. The notebooks add up to ≈ 45 minutes of CPU time; with 4 parallel jobs a full run takes roughly 20 minutes on a 10-core laptop (notebook 11, the Mamba-heavy hybrid, dominates).
 
 ### Inspect model graphs interactively
 
@@ -208,8 +208,9 @@ plot_losses(hist)
 
 * **Task**: next-character prediction on tiny-Shakespeare, context length 64, batch size 32.
 * **Optimiser**: AdamW (weight decay 0.01), peak LR 3e-3, one-cycle schedule (10 % warm-up), gradient clipping at 1.0.
-* **Budget**: 1 200 steps for most notebooks. The two with a pure-Python selective scan (09 Mamba, 11 hybrid) use fewer steps
-  (500 and 400) to keep runtime reasonable — the `steps` column in the results table makes this explicit.
+* **Budget**: 1 000–1 200 steps for most notebooks (RetNet/RWKV 1 000, everything else 1 200). The two with a pure-Python
+  selective scan (09 Mamba, 11 hybrid) use fewer steps (500 and 400) to keep runtime reasonable — the `steps` column in the
+  results table makes this explicit.
 * **Seed**: `set_seed(0)` before every model construction.
 * **Metric**: validation cross-entropy in nats per character (perplexity = `exp(loss)`).
 * **Not comparable** (different objectives, reported separately): BERT (masked-LM loss), encoder–decoder (reversal task),
@@ -217,7 +218,40 @@ plot_losses(hist)
 
 ## 9. Results
 
-<!-- RESULTS_TABLE -->
+### 9.1 Next-token models (directly comparable, lower is better)
+
+| Rank | Model | Params | Train steps | Val loss (nats/char) | Perplexity |
+|---:|---|---:|---:|---:|---:|
+| 1 | 10 RWKV | 313 k | 1,000 | 1.597 | 4.94 |
+| 2 | 08 GRU | 215 k | 1,200 | 1.648 | 5.19 |
+| 3 | 04 LLaMA-style decoder (RMSNorm+RoPE+SwiGLU+GQA) | 311 k | 1,200 | 1.652 | 5.22 |
+| 4 | 07 MoE (8 experts top-2, Mixtral-style) | 1,005 k | 1,200 | 1.655 | 5.23 |
+| 5 | 09 Mamba (SSM) | 427 k | 500 | 1.673 | 5.33 |
+| 6 | 11 Hybrid Mamba+Attn+MoE (Jamba-style) | 900 k | 400 | 1.737 | 5.68 |
+| 7 | 08 LSTM | 281 k | 1,200 | 1.771 | 5.88 |
+| 8 | 01 GPT (decoder-only) | 354 k | 1,200 | 1.773 | 5.89 |
+| 9 | 10 RetNet (retention) | 339 k | 1,000 | 2.222 | 9.22 |
+
+### 9.2 Other objectives (not comparable with the table above)
+
+| Model | Params | Train steps | Metric | Value |
+|---|---:|---:|---|---:|
+| 02 BERT (encoder-only, MLM loss) | 361 k | 1,200 | masked-LM loss (25 % masking) | 2.41 |
+| 03 Encoder-decoder (seq2seq reverse task) | 238 k | 1,500 | final train loss; held-out exact match = 100 % | 0.000187 |
+| 13 Masked diffusion LM (masked-token CE) | 796 k | 1,500 | masked-token cross-entropy | 2.51 |
+
+### 9.3 How to read these numbers
+
+* **Steps differ.** Mamba (500 steps) and the hybrid (400 steps) are under-trained relative to the 1 000–1 200 steps of the
+  others, because their pure-Python selective scan is slow. Their rank is therefore pessimistic.
+* **Parameters differ.** The MoE and hybrid models have many more *total* parameters than *active* parameters per token;
+  the MoE matches the dense baselines in per-token compute, not in parameter count.
+* **Recipe vs family.** Notebook 04 trains a GPT-2-style and a LLaMA-style decoder head to head (same width and depth,
+  1.796 vs 1.652 val loss), showing how much of the gain comes from component choices (RMSNorm, RoPE, SwiGLU, GQA) rather
+  than a new family. (The GPT row above is notebook 01's slightly different, larger model.)
+* **RetNet** is the weakest model here: this teaching implementation has no output gate / xPos and is not tuned.
+* One seed, ~0.2–1 M parameters, character-level text: differences of a few hundredths of a nat are within noise.
+
 
 ## 10. Visualisation toolbox
 
